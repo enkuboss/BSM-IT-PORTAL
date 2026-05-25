@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BSM IT Portal — Reset Password</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    .reset-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+    .reset-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    }
+    .reset-logo {
+      width: 120px;
+      display: block;
+      margin: 0 auto 1.5rem auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 6px 8px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+    }
+    .password-rules {
+      font-size: 11px;
+      color: #a09e99;
+      margin-top: 4px;
+      line-height: 1.8;
+    }
+    .rule-pass { color: #63991a; }
+    .rule-fail { color: #a09e99; }
+    .success-msg {
+      display: none;
+      margin-top: 1rem;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #eaf3de;
+      color: #27500a;
+      border: 1px solid #c0dd97;
+    }
+  </style>
+</head>
+<body>
+  <div class="reset-wrap">
+    <div class="reset-card">
+
+      <img class="reset-logo" src="1.jpeg" alt="BSM Logo"/>
+
+      <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px;">Set New Password</h2>
+      <p style="font-size:14px;color:#6b6860;margin-bottom:1.5rem;">Enter your new password below</p>
+
+      <div class="success-msg" id="reset-success">
+        ✓ Password updated! Taking you to sign in...
+      </div>
+      <div class="error-banner" id="reset-error" style="display:none;"></div>
+
+      <div class="field" style="margin-top:1rem;">
+        <label for="reset-password">New Password <span class="req">*</span></label>
+        <input type="password" id="reset-password" placeholder="••••••••" oninput="checkRules(this.value)"/>
+        <div class="password-rules">
+          <span id="rule-length" class="rule-fail">✗ Min 8 characters</span>&nbsp;&nbsp;
+          <span id="rule-number" class="rule-fail">✗ One number</span>&nbsp;&nbsp;
+          <span id="rule-upper"  class="rule-fail">✗ One uppercase</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:0.75rem;">
+        <label for="reset-confirm">Confirm Password <span class="req">*</span></label>
+        <input type="password" id="reset-confirm" placeholder="••••••••"/>
+      </div>
+
+      <button class="btn-primary full-width" onclick="handleReset()" style="margin-top:1.25rem;">
+        Update Password →
+      </button>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabase.js'
+
+    // Password rules checker
+    window.checkRules = function(val) {
+      const lengthOk = val.length >= 8
+      const numberOk = /\d/.test(val)
+      const upperOk  = /[A-Z]/.test(val)
+
+      const ruleLength = document.getElementById('rule-length')
+      const ruleNumber = document.getElementById('rule-number')
+      const ruleUpper  = document.getElementById('rule-upper')
+
+      ruleLength.className   = lengthOk ? 'rule-pass' : 'rule-fail'
+      ruleLength.textContent = (lengthOk ? '✓' : '✗') + ' Min 8 characters'
+      ruleNumber.className   = numberOk ? 'rule-pass' : 'rule-fail'
+      ruleNumber.textContent = (numberOk ? '✓' : '✗') + ' One number'
+      ruleUpper.className    = upperOk  ? 'rule-pass' : 'rule-fail'
+      ruleUpper.textContent  = (upperOk  ? '✓' : '✗') + ' One uppercase'
+    }
+
+    // Handle reset
+    window.handleReset = async function() {
+      const password = document.getElementById('reset-password').value
+      const confirm  = document.getElementById('reset-confirm').value
+      const errEl    = document.getElementById('reset-error')
+      const succEl   = document.getElementById('reset-success')
+      errEl.style.display  = 'none'
+      succEl.style.display = 'none'
+
+      if (!password || !confirm) {
+        errEl.textContent = 'Please fill in both fields.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (password.length < 8) {
+        errEl.textContent = 'Password must be at least 8 characters.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (!/\d/.test(password)) {
+        errEl.textContent = 'Password must contain at least one number.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (!/[A-Z]/.test(password)) {
+        errEl.textContent = 'Password must contain at least one uppercase letter.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (password !== confirm) {
+        errEl.textContent = 'Passwords do not match.'
+        errEl.style.display = 'block'
+        return
+      }
+
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) {
+        errEl.textContent = 'Something went wrong. Please request a new reset link.'
+        errEl.style.display = 'block'
+      } else {
+        succEl.style.display = 'block'
+        setTimeout(async () => {
+          await supabase.auth.signOut()
+          window.location.href = 'index.html'
+        }, 2000)
+      }
+    }
+  </script>
+</body>
+</html>

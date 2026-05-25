@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BSM IT Portal — Employee</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+  <header class="topnav">
+    <div class="topnav-left">
+      <span class="brand-icon">⚙</span>
+      <span class="brand-name">BSM IT Portal</span>
+      <span class="role-pill employee">Employee</span>
+    </div>
+    <div class="topnav-right">
+      <span class="user-name" id="user-display"></span>
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="new-request">
+          <span class="nav-icon">＋</span> New Request
+        </button>
+        <button class="nav-item" data-tab="my-tickets">
+          <span class="nav-icon">☰</span> My Tickets
+        </button>
+      </nav>
+    </aside>
+
+    <main class="main">
+
+      <div id="tab-new-request" class="tab active">
+        <div class="page-header">
+          <h1>Submit a Request</h1>
+          <p>Describe your issue and our IT team will respond within 1 business day.</p>
+        </div>
+
+        <div class="form-card">
+          <div class="form-grid">
+
+            <div class="field">
+              <label>Your Name <span class="req">*</span></label>
+              <input type="text" id="req-name" placeholder="e.g. Kofi Mensah" readonly/>
+            </div>
+
+            <!-- Department is hidden — auto filled from profile -->
+            <input type="hidden" id="req-dept"/>
+
+            <div class="field">
+              <label>Request Type <span class="req">*</span></label>
+              <select id="req-type">
+                <option value="">Select type</option>
+                <option>Hardware Issue</option>
+                <option>Software Install</option>
+                <option>Access / Permissions</option>
+                <option>Network / Connectivity</option>
+                <option>Account / Password</option>
+                <option>New Equipment</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Priority <span class="req">*</span></label>
+              <select id="req-priority">
+                <option value="">Select priority</option>
+                <option value="Critical">Critical – work completely stopped</option>
+                <option value="High">High – major impact</option>
+                <option value="Medium">Medium – some impact</option>
+                <option value="Low">Low – minor issue</option>
+              </select>
+            </div>
+
+            <div class="field full-width">
+              <label>Subject <span class="req">*</span></label>
+              <input type="text" id="req-subject" placeholder="Brief summary of the issue"/>
+            </div>
+
+            <div class="field full-width">
+              <label>Description</label>
+              <textarea id="req-desc" placeholder="Describe the issue in detail — what happened, when, and any steps already tried..."></textarea>
+            </div>
+
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="submitTicket()">Submit Request →</button>
+          </div>
+          <div class="success-banner" id="success-banner">✓ Ticket submitted! IT will be in touch soon.</div>
+          <div class="error-banner" id="error-banner">✕ Please fill in all required fields.</div>
+        </div>
+      </div>
+
+      <div id="tab-my-tickets" class="tab">
+        <div class="page-header">
+          <h1>My Tickets</h1>
+          <p>Track all the requests you've submitted.</p>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="Open">Open</button>
+          <button class="filter-btn" data-filter="In Progress">In Progress</button>
+          <button class="filter-btn" data-filter="Resolved">Resolved</button>
+        </div>
+        <div id="my-ticket-list"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabase.js'
+    import './app.js'
+
+    const profile = await getCurrentProfile()
+    if (!profile) { window.location.href = 'index.html' }
+    if (profile.role === 'admin') { window.location.href = 'admin.html' }
+
+    // Auto fill from profile
+    document.getElementById('user-display').textContent = profile.full_name
+    document.getElementById('req-name').value = profile.full_name
+    document.getElementById('req-dept').value = profile.dept
+
+    let myFilter = 'all'
+
+    document.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+        btn.classList.add('active')
+        document.getElementById('tab-' + tab).classList.add('active')
+        if (tab === 'my-tickets') renderMyTickets()
+      })
+    })
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+        myFilter = btn.dataset.filter
+        renderMyTickets()
+      })
+    })
+
+    window.submitTicket = async function() {
+      const name     = document.getElementById('req-name').value.trim()
+      const dept     = document.getElementById('req-dept').value
+      const type     = document.getElementById('req-type').value
+      const priority = document.getElementById('req-priority').value
+      const subject  = document.getElementById('req-subject').value.trim()
+      const desc     = document.getElementById('req-desc').value.trim()
+
+      document.getElementById('success-banner').style.display = 'none'
+      document.getElementById('error-banner').style.display   = 'none'
+
+      if (!name || !dept || !type || !priority || !subject) {
+        document.getElementById('error-banner').style.display = 'block'
+        return
+      }
+
+      const ticket = await addTicket({ name, dept, type, priority, subject, desc })
+
+      if (ticket) {
+        document.getElementById('req-type').selectedIndex     = 0
+        document.getElementById('req-priority').selectedIndex = 0
+        document.getElementById('req-subject').value          = ''
+        document.getElementById('req-desc').value             = ''
+        document.getElementById('success-banner').style.display = 'block'
+        setTimeout(() => {
+          document.getElementById('success-banner').style.display = 'none'
+        }, 5000)
+      }
+    }
+
+    async function renderMyTickets() {
+      const list = document.getElementById('my-ticket-list')
+      list.innerHTML = '<div class="empty-state"><span class="empty-icon">⏳</span>Loading...</div>'
+
+      const all   = await getTickets(profile.email)
+      const shown = myFilter === 'all' ? all : all.filter(t => t.status === myFilter)
+
+      if (shown.length === 0) {
+        list.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span>${
+          all.length === 0
+            ? "You haven't submitted any requests yet."
+            : "No tickets match this filter."
+        }</div>`
+        return
+      }
+
+      list.innerHTML = shown.map(t => `
+        <div class="ticket-card">
+          <div class="ticket-top">
+            <div>
+              <div class="ticket-id">${t.ticket_number}</div>
+              <div class="ticket-subject">${escapeHtml(t.subject)}</div>
+              <div class="ticket-meta">${t.type} &middot; ${t.dept} &middot; ${t.created_at?.slice(0,10)}</div>
+            </div>
+            <span class="badge ${statusBadgeClass(t.status)}">${t.status}</span>
+          </div>
+          <div class="ticket-footer">
+            <span class="tag">${t.type}</span>
+            <span class="badge ${priorityBadgeClass(t.priority)}">${t.priority}</span>
+          </div>
+          ${t.admin_note ? `<div class="admin-note">💬 IT note: ${escapeHtml(t.admin_note)}</div>` : ''}
+        </div>
+      `).join('')
+    }
+  </script>
+
+</body>
+</html>

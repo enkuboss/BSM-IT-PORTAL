@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BSM IT Portal — Sign In</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    .bsm-logo {
+      width: 250px;
+      display: block;
+      margin: 0 auto 1.5rem auto;
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      box-shadow: 
+        0 10px 25px rgba(0, 0, 0, 0.18),
+        0 2px 8px rgba(0, 0, 0, 0.10);
+      filter: drop-shadow(0 0 10px rgba(70, 203, 34, 0.25));
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .auth-switch {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 13px;
+      color: #6b6860;
+    }
+    .auth-switch a {
+      color: #1a1917;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .forgot-link {
+      font-size: 12px;
+      color: #6b6860;
+      text-align: right;
+      cursor: pointer;
+      margin-top: 4px;
+      text-decoration: underline;
+    }
+    .forgot-link:hover { color: #1a1917; }
+
+    .password-rules {
+      font-size: 11px;
+      color: #a09e99;
+      margin-top: 4px;
+      line-height: 1.6;
+    }
+    .rule-pass { color: #63991a; }
+    .rule-fail { color: #a09e99; }
+
+    .pending-banner {
+      display: none;
+      margin-top: 1rem;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #faeeda;
+      color: #633806;
+      border: 1px solid #f0c87a;
+    }
+
+    .success-msg {
+      display: none;
+      margin-top: 1rem;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      background: #eaf3de;
+      color: #27500a;
+      border: 1px solid #c0dd97;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+  </style>
+</head>
+
+<body class="login-body">
+  <div class="login-wrap">
+
+    <!-- LEFT PANEL -->
+    <div class="login-left">
+      <div class="login-brand">
+        <span class="brand-icon">⚙</span>
+        <span class="brand-name">BSM IT Portal</span>
+      </div>
+      <h1 class="login-headline">
+        Your IT Help Desk,<br/>Simplified.
+      </h1>
+      <p class="login-sub">
+        Submit requests, track progress, and get support — all in one place.
+      </p>
+      <div class="login-demo-hint">
+        <p>🔒 Sign in with your registered email and password.</p>
+        <p style="margin-top:8px;">New accounts require admin approval before access is granted.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="login-right">
+      <div class="login-card">
+
+        <img class="bsm-logo" src="1.jpeg" alt="BSM Logo"/>
+
+        <!-- SIGN IN VIEW -->
+        <div class="view active" id="view-signin">
+          <h2>Sign in</h2>
+          <p class="login-card-sub">Welcome back — enter your credentials</p>
+
+          <div class="pending-banner" id="signin-pending"></div>
+          <div class="error-banner" id="signin-error" style="display:none;">
+            Incorrect email or password. Please try again.
+          </div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label for="signin-email">Email address</label>
+            <input type="email" id="signin-email" placeholder="you@gmail.com"/>
+          </div>
+
+          <div class="field" style="margin-top:0.75rem;">
+            <label for="signin-password">Password</label>
+            <input type="password" id="signin-password" placeholder="••••••••"/>
+            <div class="forgot-link" onclick="showView('forgot')">Forgot password?</div>
+          </div>
+
+          <button class="btn-primary full-width" onclick="handleSignIn()" style="margin-top:1.25rem;">
+            Sign in →
+          </button>
+
+          <div class="auth-switch">
+            Don't have an account? <a onclick="showView('signup')">Sign up</a>
+          </div>
+        </div>
+
+        <!-- SIGN UP VIEW -->
+        <div class="view" id="view-signup">
+          <h2>Create account</h2>
+          <p class="login-card-sub">Fill in your details to request access</p>
+
+          <div class="error-banner" id="signup-error" style="display:none;"></div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label for="signup-name">Full Name <span class="req">*</span></label>
+            <input type="text" id="signup-name" placeholder="e.g. Kofi Mensah"/>
+          </div>
+
+          <div class="field" style="margin-top:0.75rem;">
+            <label for="signup-dept">Department <span class="req">*</span></label>
+            <select id="signup-dept">
+              <option value="">Select department</option>
+              <option>Accounts</option>
+              <option>HR</option>
+              <option>Operations</option>
+              <option>Sales</option>
+              <option>Marketing</option>
+              <option>Management</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="field" style="margin-top:0.75rem;">
+            <label for="signup-email">Email Address <span class="req">*</span></label>
+            <input type="email" id="signup-email" placeholder="you@gmail.com"/>
+          </div>
+
+          <div class="field" style="margin-top:0.75rem;">
+            <label for="signup-password">Password <span class="req">*</span></label>
+            <input type="password" id="signup-password" placeholder="••••••••" oninput="checkPasswordRules(this.value)"/>
+            <div class="password-rules">
+              <span id="rule-length" class="rule-fail">✗ Min 8 characters</span>
+              <span id="rule-number" class="rule-fail">✗ One number</span>
+              <span id="rule-upper"  class="rule-fail">✗ One uppercase</span>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:0.75rem;">
+            <label for="signup-confirm">Confirm Password <span class="req">*</span></label>
+            <input type="password" id="signup-confirm" placeholder="••••••••"/>
+          </div>
+
+          <button class="btn-primary full-width" onclick="handleSignUp()" style="margin-top:1.25rem;">
+            Create Account →
+          </button>
+
+          <div class="auth-switch">
+            Already have an account? <a onclick="showView('signin')">Sign in</a>
+          </div>
+        </div>
+
+        <!-- FORGOT PASSWORD VIEW -->
+        <div class="view" id="view-forgot">
+          <h2>Reset Password</h2>
+          <p class="login-card-sub">Enter your email and we'll send a reset link</p>
+
+          <div class="success-msg" id="forgot-success">
+            ✓ Reset link sent! Check your email inbox.
+          </div>
+          <div class="error-banner" id="forgot-error" style="display:none;"></div>
+
+          <div class="field" style="margin-top:1rem;">
+            <label for="forgot-email">Email Address</label>
+            <input type="email" id="forgot-email" placeholder="you@gmail.com"/>
+          </div>
+
+          <button class="btn-primary full-width" onclick="handleForgotPassword()" style="margin-top:1.25rem;">
+            Send Reset Link →
+          </button>
+
+          <div class="auth-switch">
+            Remember your password? <a onclick="showView('signin')">Sign in</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabase.js'
+
+    // ===== VIEW SWITCHING =====
+    window.showView = function(view) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
+      document.getElementById('view-' + view).classList.add('active')
+      document.querySelectorAll('.error-banner, .success-msg, .pending-banner').forEach(el => {
+        el.style.display = 'none'
+      })
+    }
+
+    // ===== AUTH STATE =====
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        window.location.href = 'reset.html'
+        return
+      }
+
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, approved')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile?.approved && profile?.role === 'admin') {
+          window.location.href = 'admin.html'
+        } else if (profile?.approved && profile?.role === 'employee') {
+          window.location.href = 'employee.html'
+        } else if (profile && !profile.approved) {
+          const el = document.getElementById('signin-pending')
+          el.textContent = '⏳ Your account is pending admin approval. Please check back soon.'
+          el.style.display = 'block'
+        }
+      }
+    })
+
+    // ===== SIGN IN =====
+    window.handleSignIn = async function() {
+      const email    = document.getElementById('signin-email').value.trim()
+      const password = document.getElementById('signin-password').value
+      const errEl    = document.getElementById('signin-error')
+      errEl.style.display = 'none'
+      document.getElementById('signin-pending').style.display = 'none'
+
+      if (!email || !password) {
+        errEl.textContent = 'Please enter your email and password.'
+        errEl.style.display = 'block'
+        return
+      }
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        errEl.textContent = 'Incorrect email or password. Please try again.'
+        errEl.style.display = 'block'
+      }
+    }
+
+    // ===== PASSWORD RULES =====
+    window.checkPasswordRules = function(val) {
+      const lengthOk = val.length >= 8
+      const numberOk = /\d/.test(val)
+      const upperOk  = /[A-Z]/.test(val)
+
+      const ruleLength = document.getElementById('rule-length')
+      const ruleNumber = document.getElementById('rule-number')
+      const ruleUpper  = document.getElementById('rule-upper')
+
+      ruleLength.className   = lengthOk ? 'rule-pass' : 'rule-fail'
+      ruleLength.textContent = (lengthOk ? '✓' : '✗') + ' Min 8 characters'
+      ruleNumber.className   = numberOk ? 'rule-pass' : 'rule-fail'
+      ruleNumber.textContent = (numberOk ? '✓' : '✗') + ' One number'
+      ruleUpper.className    = upperOk  ? 'rule-pass' : 'rule-fail'
+      ruleUpper.textContent  = (upperOk  ? '✓' : '✗') + ' One uppercase'
+    }
+
+    // ===== SIGN UP =====
+    window.handleSignUp = async function() {
+      const name     = document.getElementById('signup-name').value.trim()
+      const dept     = document.getElementById('signup-dept').value
+      const email    = document.getElementById('signup-email').value.trim()
+      const password = document.getElementById('signup-password').value
+      const confirm  = document.getElementById('signup-confirm').value
+      const errEl    = document.getElementById('signup-error')
+      errEl.style.display = 'none'
+
+      if (!name || !dept || !email || !password || !confirm) {
+        errEl.textContent = 'Please fill in all fields.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (password.length < 8) {
+        errEl.textContent = 'Password must be at least 8 characters.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (!/\d/.test(password)) {
+        errEl.textContent = 'Password must contain at least one number.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (!/[A-Z]/.test(password)) {
+        errEl.textContent = 'Password must contain at least one uppercase letter.'
+        errEl.style.display = 'block'
+        return
+      }
+      if (password !== confirm) {
+        errEl.textContent = 'Passwords do not match.'
+        errEl.style.display = 'block'
+        return
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } }
+      })
+
+      if (error) {
+        errEl.textContent = error.message
+        errEl.style.display = 'block'
+        return
+      }
+
+      if (data.user) {
+        await supabase.from('profiles').upsert({
+          id:        data.user.id,
+          full_name: name,
+          email:     email,
+          dept:      dept,
+          role:      'employee',
+          approved:  false
+        })
+      }
+
+      showView('signin')
+      const pending = document.getElementById('signin-pending')
+      pending.textContent = '✓ Account created! An admin will approve your account before you can sign in.'
+      pending.style.background = '#eaf3de'
+      pending.style.color = '#27500a'
+      pending.style.border = '1px solid #c0dd97'
+      pending.style.display = 'block'
+    }
+
+    // ===== FORGOT PASSWORD =====
+    window.handleForgotPassword = async function() {
+      const email  = document.getElementById('forgot-email').value.trim()
+      const errEl  = document.getElementById('forgot-error')
+      const succEl = document.getElementById('forgot-success')
+      errEl.style.display  = 'none'
+      succEl.style.display = 'none'
+
+      if (!email) {
+        errEl.textContent = 'Please enter your email address.'
+        errEl.style.display = 'block'
+        return
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'http://127.0.0.1:3000/reset.html'
+      })
+
+      if (error) {
+        errEl.textContent = 'Something went wrong. Please try again.'
+        errEl.style.display = 'block'
+      } else {
+        succEl.style.display = 'block'
+      }
+    }
+
+    // ===== ENTER KEY SUPPORT =====
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return
+      const active = document.querySelector('.view.active')?.id
+      if (active === 'view-signin') handleSignIn()
+      if (active === 'view-signup') handleSignUp()
+      if (active === 'view-forgot') handleForgotPassword()
+    })
+  </script>
+
+</body>
+</html>
