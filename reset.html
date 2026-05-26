@@ -91,7 +91,6 @@
   <script type="module">
     import { supabase } from './supabase.js'
 
-    // Password rules checker
     window.checkRules = function(val) {
       const lengthOk = val.length >= 8
       const numberOk = /\d/.test(val)
@@ -109,7 +108,6 @@
       ruleUpper.textContent  = (upperOk  ? '✓' : '✗') + ' One uppercase'
     }
 
-    // Handle reset
     window.handleReset = async function() {
       const password = document.getElementById('reset-password').value
       const confirm  = document.getElementById('reset-confirm').value
