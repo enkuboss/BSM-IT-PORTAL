@@ -61,6 +61,21 @@ window.addTicket = async function(data) {
   }]).select().single()
 
   if (error) { console.error(error); return null }
+
+  // ===== SEND EMAIL NOTIFICATION TO ADMINS =====
+  try {
+    await fetch('https://yehnzwgacsvtlgfvdqan.supabase.co/functions/v1/notify-admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaG56d2dhY3N2dGxnZnZkcWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MzQ4NzQsImV4cCI6MjA5NTAxMDg3NH0.N4jarZbPuNLV14H-tvrabFngtTQjOj2Oy-yVhSrBg-w`
+      },
+      body: JSON.stringify({ ticket })
+    })
+  } catch (e) {
+    console.error('Email notification failed:', e)
+  }
+
   return ticket
 }
 
