@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 
-  <style>
+ <style>
     .bsm-logo {
       width: 250px;
       display: block;
@@ -21,6 +21,26 @@
       filter: drop-shadow(0 0 10px rgba(70, 203, 34, 0.25));
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+
+    .login-left {
+      background-image: url('2.jpeg') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      position: relative;
+    }
+
+    .login-left::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+    }
+
+    .login-left > * {
+      position: relative;
+      z-index: 1;
+    }
+
     .auth-switch {
       text-align: center;
       margin-top: 1.25rem;
@@ -74,7 +94,7 @@
     }
     .view { display: none; }
     .view.active { display: block; }
-  </style>
+</style>
 </head>
 
 <body class="login-body">
