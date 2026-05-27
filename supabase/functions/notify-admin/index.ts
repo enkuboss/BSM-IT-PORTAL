@@ -4,10 +4,20 @@ const RESEND_API_KEY = 're_hZgXw2bn_GCBWA5QDnxv3Z3MRagzdJ5ee'
 
 const ADMIN_EMAILS = [
   'idrisabdallah808@gmail.com',
-  // Add the other 2 admin emails here later
 ]
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     const { ticket } = await req.json()
 
@@ -70,7 +80,6 @@ serve(async (req) => {
       </div>
     `
 
-    // Send to all admin emails
     await Promise.all(ADMIN_EMAILS.map(async (adminEmail) => {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -88,13 +97,13 @@ serve(async (req) => {
     }))
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })
