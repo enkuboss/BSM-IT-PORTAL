@@ -10,7 +10,7 @@ const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 async function callFunction(body) {
   try {
-    await fetch(FUNCTION_URL, {
+    const res = await fetch(FUNCTION_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -18,6 +18,8 @@ async function callFunction(body) {
       },
       body: JSON.stringify(body)
     })
+    const data = await res.json()
+    console.log('Function response:', data)
   } catch (e) {
     console.error('Function call failed:', e)
   }
@@ -80,7 +82,6 @@ window.addTicket = async function(data) {
 
   if (error) { console.error(error); return null }
 
-  // Send new ticket email to all admins
   await callFunction({ type: 'new_ticket', ticket })
 
   return ticket
@@ -93,24 +94,38 @@ window.updateTicket = async function(id, changes) {
 
 // ===== APPROVE USER + SEND EMAIL =====
 window.approveUserAndNotify = async function(id, full_name, email) {
-  await supabase.from('profiles').update({ approved: true }).eq('id', id)
+  console.log('Approving user:', full_name, email)
+  
+  const { error } = await supabase.from('profiles').update({ approved: true }).eq('id', id)
+  if (error) {
+    console.error('Approve error:', error)
+    return
+  }
 
-  // Send approval email to employee
+  console.log('User approved, sending email...')
   await callFunction({
     type: 'account_approved',
     employee_name: full_name,
     employee_email: email
   })
+  console.log('Done!')
 }
 
 // ===== ASSIGN TICKET + SEND EMAIL =====
 window.assignTicket = async function(ticketId, assigned_to, internal_note) {
-  const { data: ticket } = await supabase
+  console.log('Assigning ticket:', ticketId, 'to:', assigned_to)
+  
+  const { data: ticket, error } = await supabase
     .from('tickets')
     .update({ assigned_to, internal_note })
     .eq('id', ticketId)
     .select()
     .single()
+
+  if (error) {
+    console.error('Assign error:', error)
+    return
+  }
 
   if (ticket && assigned_to) {
     await callFunction({
