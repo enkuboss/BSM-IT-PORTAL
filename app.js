@@ -5,6 +5,24 @@
 
 import { supabase } from './supabase.js'
 
+const FUNCTION_URL = 'https://yehnzwgacsvtlgfvdqan.supabase.co/functions/v1/notify-admin'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaG56d2dhY3N2dGxnZnZkcWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MzQ4NzQsImV4cCI6MjA5NTAxMDg3NH0.N4jarZbPuNLV14H-tvrabFngtTQjOj2Oy-yVhSrBg-w'
+
+async function callFunction(body) {
+  try {
+    await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ANON_KEY}`
+      },
+      body: JSON.stringify(body)
+    })
+  } catch (e) {
+    console.error('Function call failed:', e)
+  }
+}
+
 // ===== AUTH =====
 window.logout = async function() {
   await supabase.auth.signOut()
@@ -62,19 +80,8 @@ window.addTicket = async function(data) {
 
   if (error) { console.error(error); return null }
 
-  // ===== SEND EMAIL NOTIFICATION TO ADMINS =====
-  try {
-    await fetch('https://yehnzwgacsvtlgfvdqan.supabase.co/functions/v1/notify-admin', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaG56d2dhY3N2dGxnZnZkcWFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MzQ4NzQsImV4cCI6MjA5NTAxMDg3NH0.N4jarZbPuNLV14H-tvrabFngtTQjOj2Oy-yVhSrBg-w`
-      },
-      body: JSON.stringify({ ticket })
-    })
-  } catch (e) {
-    console.error('Email notification failed:', e)
-  }
+  // Send new ticket email to all admins
+  await callFunction({ type: 'new_ticket', ticket })
 
   return ticket
 }
@@ -82,6 +89,36 @@ window.addTicket = async function(data) {
 window.updateTicket = async function(id, changes) {
   const { error } = await supabase.from('tickets').update(changes).eq('id', id)
   if (error) console.error(error)
+}
+
+// ===== APPROVE USER + SEND EMAIL =====
+window.approveUserAndNotify = async function(id, full_name, email) {
+  await supabase.from('profiles').update({ approved: true }).eq('id', id)
+
+  // Send approval email to employee
+  await callFunction({
+    type: 'account_approved',
+    employee_name: full_name,
+    employee_email: email
+  })
+}
+
+// ===== ASSIGN TICKET + SEND EMAIL =====
+window.assignTicket = async function(ticketId, assigned_to, internal_note) {
+  const { data: ticket } = await supabase
+    .from('tickets')
+    .update({ assigned_to, internal_note })
+    .eq('id', ticketId)
+    .select()
+    .single()
+
+  if (ticket && assigned_to) {
+    await callFunction({
+      type: 'assigned',
+      ticket: { ...ticket, internal_note },
+      assigned_to
+    })
+  }
 }
 
 // ===== BADGE HELPERS =====

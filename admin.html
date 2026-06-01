@@ -91,6 +91,7 @@
     </main>
   </div>
 
+  <!-- IT NOTE MODAL -->
   <div class="modal-overlay" id="modal-overlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
       <h3>Add / Edit IT Note</h3>
@@ -99,6 +100,34 @@
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeModal()">Cancel</button>
         <button class="btn-primary" onclick="saveNote()">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERNAL NOTE + ASSIGN MODAL -->
+  <div class="modal-overlay" id="assign-modal-overlay" onclick="closeAssignModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>Assign Ticket</h3>
+      <p class="modal-sub">Assign this ticket to an admin and add an internal note.</p>
+      
+      <label style="font-size:13px;font-weight:500;color:#6b6860;display:block;margin-bottom:6px;">
+        Assign To
+      </label>
+      <select id="assign-select" style="width:100%;font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;border:1px solid #e2dfd9;border-radius:6px;background:#f0ede8;margin-bottom:1rem;">
+        <option value="">Select admin</option>
+        <option>Idris Abdulai</option>
+        <option>Gideon Pomeyi</option>
+        <option>Michael</option>
+      </select>
+
+      <label style="font-size:13px;font-weight:500;color:#6b6860;display:block;margin-bottom:6px;">
+        Internal Note <span style="font-size:11px;color:#a09e99;">(only admins can see this)</span>
+      </label>
+      <textarea id="internal-note-input" placeholder="e.g. Please call this employee first before visiting..."></textarea>
+      
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAssignModal()">Cancel</button>
+        <button class="btn-primary" onclick="saveAssignment()">Assign & Notify →</button>
       </div>
     </div>
   </div>
@@ -115,6 +144,7 @@
 
     let adminFilter = 'all'
     let editingTicketId = null
+    let assigningTicketId = null
 
     document.querySelectorAll('.nav-item').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -138,6 +168,7 @@
       })
     })
 
+    // DASHBOARD
     async function renderDashboard() {
       const all = await getTickets()
       document.getElementById('m-total').textContent    = all.length
@@ -154,6 +185,7 @@
       list.innerHTML = recent.map(t => ticketCardHTML(t, false)).join('')
     }
 
+    // ALL TICKETS
     async function renderAllTickets() {
       const all   = await getTickets()
       const shown = adminFilter === 'all' ? all : all.filter(t => t.status === adminFilter)
@@ -165,6 +197,7 @@
       list.innerHTML = shown.map(t => ticketCardHTML(t, true)).join('')
     }
 
+    // TICKET CARD
     function ticketCardHTML(t, admin) {
       return `
         <div class="ticket-card" id="card-${t.id}">
@@ -185,21 +218,26 @@
                 <option ${t.status==='In Progress' ?'selected':''}>In Progress</option>
                 <option ${t.status==='Resolved'    ?'selected':''}>Resolved</option>
               </select>
-              <button class="btn-note" onclick="openModal(${t.id})">📝 Note</button>
+              <button class="btn-note" onclick="openModal(${t.id})">📝 IT Note</button>
+              <button class="btn-note" onclick="openAssignModal(${t.id})" style="background:#e6f1fb;color:#0c447c;">👤 Assign</button>
             ` : ''}
           </div>
+          ${t.assigned_to ? `<div class="admin-note" style="background:#e6f1fb;border-color:#378add;color:#0c447c;">👤 Assigned to: <strong>${escapeHtml(t.assigned_to)}</strong></div>` : ''}
+          ${t.internal_note ? `<div class="admin-note" style="background:#f1efe8;border-color:#a09e99;color:#444441;">🔒 Internal: ${escapeHtml(t.internal_note)}</div>` : ''}
           ${t.admin_note ? `<div class="admin-note">💬 IT note: ${escapeHtml(t.admin_note)}</div>` : ''}
           ${t.description ? `<div class="ticket-desc">${escapeHtml(t.description)}</div>` : ''}
         </div>
       `
     }
 
+    // STATUS UPDATE
     window.changeStatus = async function(id, newStatus) {
       await updateTicket(id, { status: newStatus })
       renderDashboard()
       renderAllTickets()
     }
 
+    // IT NOTE MODAL
     window.openModal = async function(id) {
       editingTicketId = id
       const all = await getTickets()
@@ -220,6 +258,30 @@
       renderAllTickets()
     }
 
+    // ASSIGN MODAL
+    window.openAssignModal = async function(id) {
+      assigningTicketId = id
+      const all = await getTickets()
+      const t = all.find(x => x.id === id)
+      document.getElementById('assign-select').value = t.assigned_to || ''
+      document.getElementById('internal-note-input').value = t.internal_note || ''
+      document.getElementById('assign-modal-overlay').style.display = 'flex'
+    }
+
+    window.closeAssignModal = function() {
+      document.getElementById('assign-modal-overlay').style.display = 'none'
+      assigningTicketId = null
+    }
+
+    window.saveAssignment = async function() {
+      const assigned_to   = document.getElementById('assign-select').value
+      const internal_note = document.getElementById('internal-note-input').value.trim()
+      await assignTicket(assigningTicketId, assigned_to, internal_note)
+      closeAssignModal()
+      renderAllTickets()
+    }
+
+    // USERS
     async function renderUsers() {
       const { data: users } = await supabase
         .from('profiles')
@@ -237,13 +299,13 @@
           <div class="ticket-top">
             <div>
               <div class="ticket-subject">${escapeHtml(u.full_name)}</div>
-              <div class="ticket-meta">${u.email} &middot; Joined ${u.created_at?.slice(0,10)}</div>
+              <div class="ticket-meta">${u.email} &middot; ${u.dept} &middot; Joined ${u.created_at?.slice(0,10)}</div>
             </div>
             <span class="badge ${u.approved ? 'badge-resolved' : 'badge-open'}">${u.approved ? 'Approved' : 'Pending'}</span>
           </div>
           <div class="ticket-footer">
             <span class="tag">${u.role}</span>
-            ${!u.approved ? `<button class="btn-note" onclick="approveUser('${u.id}')">✅ Approve</button>` : ''}
+            ${!u.approved ? `<button class="btn-note" onclick="handleApprove('${u.id}', '${escapeHtml(u.full_name)}', '${u.email}')">✅ Approve</button>` : ''}
             <select class="status-select" onchange="changeRole('${u.id}', this.value)">
               <option ${u.role==='employee'?'selected':''}>employee</option>
               <option ${u.role==='admin'?'selected':''}>admin</option>
@@ -253,11 +315,13 @@
       `).join('')
     }
 
-    window.approveUser = async function(id) {
-      await supabase.from('profiles').update({ approved: true }).eq('id', id)
+    // APPROVE USER
+    window.handleApprove = async function(id, full_name, email) {
+      await approveUserAndNotify(id, full_name, email)
       renderUsers()
     }
 
+    // CHANGE ROLE
     window.changeRole = async function(id, role) {
       await supabase.from('profiles').update({ role }).eq('id', id)
       renderUsers()
