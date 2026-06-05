@@ -66,11 +66,13 @@ window.getTickets = async function(emailFilter = null) {
 
 window.addTicket = async function(data) {
   const { data: { session } } = await supabase.auth.getSession()
-  const { count } = await supabase.from('tickets').select('id', { count: 'exact', head: true })
-  const num = String((count || 0) + 1).padStart(3, '0')
+
+  // Use timestamp to generate unique ticket number
+  const timestamp = Date.now().toString().slice(-6)
+  const ticketNumber = 'TK-' + timestamp
 
   const { data: ticket, error } = await supabase.from('tickets').insert([{
-    ticket_number: 'TK-' + num,
+    ticket_number: ticketNumber,
     name:          data.name,
     email:         session.user.email,
     dept:          data.dept,
@@ -95,7 +97,7 @@ window.updateTicket = async function(id, changes) {
 // ===== APPROVE USER + SEND EMAIL =====
 window.approveUserAndNotify = async function(id, full_name, email) {
   console.log('Approving user:', full_name, email)
-  
+
   const { error } = await supabase.from('profiles').update({ approved: true }).eq('id', id)
   if (error) {
     console.error('Approve error:', error)
@@ -114,7 +116,7 @@ window.approveUserAndNotify = async function(id, full_name, email) {
 // ===== ASSIGN TICKET + SEND EMAIL =====
 window.assignTicket = async function(ticketId, assigned_to, internal_note) {
   console.log('Assigning ticket:', ticketId, 'to:', assigned_to)
-  
+
   const { data: ticket, error } = await supabase
     .from('tickets')
     .update({ assigned_to, internal_note })
