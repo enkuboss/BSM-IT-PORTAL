@@ -67,9 +67,9 @@ window.getTickets = async function(emailFilter = null) {
 window.addTicket = async function(data) {
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Use timestamp to generate unique ticket number
-  const timestamp = Date.now().toString().slice(-6)
-  const ticketNumber = 'TK-' + timestamp
+  // Use database sequence for unique ticket number
+  const { data: seqData } = await supabase.rpc('generate_ticket_number')
+  const ticketNumber = seqData
 
   const { data: ticket, error } = await supabase.from('tickets').insert([{
     ticket_number: ticketNumber,
