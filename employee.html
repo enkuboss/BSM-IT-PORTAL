@@ -50,7 +50,6 @@
               <input type="text" id="req-name" placeholder="e.g. Kofi Mensah" readonly/>
             </div>
 
-            <!-- Department is hidden — auto filled from profile -->
             <input type="hidden" id="req-dept"/>
 
             <div class="field">
@@ -88,6 +87,24 @@
               <textarea id="req-desc" placeholder="Describe the issue in detail — what happened, when, and any steps already tried..."></textarea>
             </div>
 
+            <div class="field full-width">
+              <label>Attachment <span style="font-size:11px;color:#a09e99;">(optional — photo of the issue)</span></label>
+              <input type="file" id="req-attachment" accept="image/*,.pdf" style="
+                font-family: var(--font);
+                font-size: 14px;
+                color: var(--text-1);
+                background: var(--bg);
+                border: 1px solid var(--border);
+                border-radius: var(--r-sm);
+                padding: 9px 12px;
+                width: 100%;
+                cursor: pointer;
+              "/>
+              <div id="attachment-preview" style="margin-top: 8px; display: none;">
+                <img id="preview-img" style="max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid var(--border);"/>
+              </div>
+            </div>
+
           </div>
           <div class="form-actions">
             <button class="btn-primary" onclick="submitTicket()">Submit Request →</button>
@@ -122,7 +139,6 @@
     if (!profile) { window.location.href = 'index.html' }
     if (profile.role === 'admin') { window.location.href = 'admin.html' }
 
-    // Auto fill from profile
     document.getElementById('user-display').textContent = profile.full_name
     document.getElementById('req-name').value = profile.full_name
     document.getElementById('req-dept').value = profile.dept
@@ -149,13 +165,32 @@
       })
     })
 
+    // Show image preview when file selected
+    document.getElementById('req-attachment').addEventListener('change', function() {
+      const file = this.files[0]
+      const preview = document.getElementById('attachment-preview')
+      const img = document.getElementById('preview-img')
+
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = e => {
+          img.src = e.target.result
+          preview.style.display = 'block'
+        }
+        reader.readAsDataURL(file)
+      } else {
+        preview.style.display = 'none'
+      }
+    })
+
     window.submitTicket = async function() {
-      const name     = document.getElementById('req-name').value.trim()
-      const dept     = document.getElementById('req-dept').value
-      const type     = document.getElementById('req-type').value
-      const priority = document.getElementById('req-priority').value
-      const subject  = document.getElementById('req-subject').value.trim()
-      const desc     = document.getElementById('req-desc').value.trim()
+      const name       = document.getElementById('req-name').value.trim()
+      const dept       = document.getElementById('req-dept').value
+      const type       = document.getElementById('req-type').value
+      const priority   = document.getElementById('req-priority').value
+      const subject    = document.getElementById('req-subject').value.trim()
+      const desc       = document.getElementById('req-desc').value.trim()
+      const attachment = document.getElementById('req-attachment').files[0]
 
       document.getElementById('success-banner').style.display = 'none'
       document.getElementById('error-banner').style.display   = 'none'
@@ -165,13 +200,34 @@
         return
       }
 
-      const ticket = await addTicket({ name, dept, type, priority, subject, desc })
+      // Upload attachment if provided
+      let attachmentUrl = ''
+      if (attachment) {
+        const fileExt  = attachment.name.split('.').pop()
+        const fileName = `${Date.now()}.${fileExt}`
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('ticket-attachments')
+          .upload(fileName, attachment)
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError)
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('ticket-attachments')
+            .getPublicUrl(fileName)
+          attachmentUrl = urlData.publicUrl
+        }
+      }
+
+      const ticket = await addTicket({ name, dept, type, priority, subject, desc, attachmentUrl })
 
       if (ticket) {
         document.getElementById('req-type').selectedIndex     = 0
         document.getElementById('req-priority').selectedIndex = 0
         document.getElementById('req-subject').value          = ''
         document.getElementById('req-desc').value             = ''
+        document.getElementById('req-attachment').value       = ''
+        document.getElementById('attachment-preview').style.display = 'none'
         document.getElementById('success-banner').style.display = 'block'
         setTimeout(() => {
           document.getElementById('success-banner').style.display = 'none'
@@ -210,6 +266,12 @@
             <span class="badge ${priorityBadgeClass(t.priority)}">${t.priority}</span>
           </div>
           ${t.admin_note ? `<div class="admin-note">💬 IT note: ${escapeHtml(t.admin_note)}</div>` : ''}
+          ${t.attachment_url ? `
+            <div style="margin-top:10px;">
+              <a href="${t.attachment_url}" target="_blank" style="font-size:13px;color:#0c447c;">
+                📎 View Attachment
+              </a>
+            </div>` : ''}
         </div>
       `).join('')
     }

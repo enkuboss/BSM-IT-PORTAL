@@ -72,14 +72,15 @@ window.addTicket = async function(data) {
   const ticketNumber = seqData
 
   const { data: ticket, error } = await supabase.from('tickets').insert([{
-    ticket_number: ticketNumber,
-    name:          data.name,
-    email:         session.user.email,
-    dept:          data.dept,
-    type:          data.type,
-    priority:      data.priority,
-    subject:       data.subject,
-    description:   data.desc || ''
+    ticket_number:  ticketNumber,
+    name:           data.name,
+    email:          session.user.email,
+    dept:           data.dept,
+    type:           data.type,
+    priority:       data.priority,
+    subject:        data.subject,
+    description:    data.desc || '',
+    attachment_url: data.attachmentUrl || ''
   }]).select().single()
 
   if (error) { console.error(error); return null }
